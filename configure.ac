@@ -1260,6 +1260,19 @@ AC_ARG_ENABLE([wasm-pthreads],
   enable_wasm_pthreads=missing
 ])
 AC_MSG_RESULT([$enable_wasm_pthreads])
+AC_MSG_CHECKING([for --enable-wasm-preload])
+AC_ARG_ENABLE([wasm-preload],
+  [AS_HELP_STRING([--enable-wasm-preload],
+                  [Enable preloading files for WebAssembly (default is yes)])],
+[
+  AS_CASE([$ac_sys_system/$ac_sys_emscripten_target],
+    [Emscripten/browser*], [],
+    [AC_MSG_ERROR([--enable-wasm-preload only applies to Emscripten in browsers])]
+  )
+], [
+  enable_wasm_preload=missing
+])
+AC_MSG_RESULT([$enable_wasm_preload])
 
 AC_MSG_CHECKING([for --with-suffix])
 AC_ARG_WITH([suffix],
@@ -2127,7 +2140,9 @@ AS_CASE([$ac_sys_system],
     AS_CASE([$ac_sys_emscripten_target],
       [browser*], [
         AS_VAR_IF([ac_sys_emscripten_target], [browser-debug], [wasm_debug=yes])
-        AS_VAR_APPEND([LINKFORSHARED], [" --preload-file=\$(WASM_ASSETS_DIR)"])
+        AS_VAR_IF([enable_wasm_preload], [no], [], [
+          AS_VAR_APPEND([LINKFORSHARED], [" --preload-file=\$(WASM_ASSETS_DIR)"])
+        ])
         WASM_ASSETS_DIR=".\$(prefix)"
         WASM_STDLIB="\$(WASM_ASSETS_DIR)/local/lib/python\$(VERSION)/os.py"
         dnl separate-dwarf does not seem to work in Chrome DevTools Support.
@@ -6882,6 +6897,11 @@ AS_CASE([$ac_sys_system],
   [PY_STDLIB_MOD_SET_NA([_scproxy])]
 )
 
+AS_CASE([$ac_sys_system],
+  [Emscripten], [],
+  [PY_STDLIB_MOD_SET_NA(_emception)]
+)
+
 dnl AC_MSG_NOTICE([m4_set_list([_PY_STDLIB_MOD_SET_NA])])
 
 dnl Default value for Modules/Setup.stdlib build type
@@ -6980,6 +7000,8 @@ PY_STDLIB_MOD_SIMPLE([_struct])
 PY_STDLIB_MOD_SIMPLE([_typing])
 PY_STDLIB_MOD_SIMPLE([_xxsubinterpreters])
 PY_STDLIB_MOD_SIMPLE([_zoneinfo])
+
+PY_STDLIB_MOD_SIMPLE([_emception])
 
 dnl multiprocessing modules
 PY_STDLIB_MOD([_multiprocessing],
